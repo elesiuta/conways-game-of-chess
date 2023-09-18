@@ -11,6 +11,8 @@ You can play with a friend locally or over a socket connection.
 
 See instructions with `python3 conway_chess.py --help`
 
+<img src="https://raw.githubusercontent.com/elesiuta/conways-game-of-chess/main/demo.gif" width="35%" height="35%">
+
 Controls:
 - Arrow keys to move the cursor
 - Enter or space to select and move a piece
