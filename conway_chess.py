@@ -182,6 +182,8 @@ def main_loop(stdscr, engine: "Engine", engine_state: list[bytes], engine_state_
                 elif char in "ou" and y > 4 and y < engine.height - 2:
                     stdscr.attrset(curses.color_pair(7))
                 # death counters
+                elif char == "0" and x > 1 and x < engine.width - 1 and y > 4 and y < engine.height - 2 and (y - 5) % 4 == 2:
+                    stdscr.attrset(curses.color_pair(7))
                 elif char == "1" and x > 1 and x < engine.width - 1 and y > 4 and y < engine.height - 2 and (y - 5) % 4 == 2:
                     stdscr.attrset(curses.color_pair(7))
                 elif char == "2" and x > 1 and x < engine.width - 1 and y > 4 and y < engine.height - 2 and (y - 5) % 4 == 2:
@@ -189,6 +191,8 @@ def main_loop(stdscr, engine: "Engine", engine_state: list[bytes], engine_state_
                 elif char == "3" and x > 1 and x < engine.width - 1 and y > 4 and y < engine.height - 2 and (y - 5) % 4 == 2:
                     stdscr.attrset(curses.color_pair(8))
                 # birth counters
+                elif char == "0" and x > 1 and x < engine.width - 1 and y > 4 and y < engine.height - 2 and (y - 5) % 4 != 2:
+                    stdscr.attrset(curses.color_pair(9))
                 elif char == "1" and x > 1 and x < engine.width - 1 and y > 4 and y < engine.height - 2 and (y - 5) % 4 != 2:
                     stdscr.attrset(curses.color_pair(9))
                 elif char == "2" and x > 1 and x < engine.width - 1 and y > 4 and y < engine.height - 2 and (y - 5) % 4 != 2:
@@ -253,7 +257,7 @@ class Engine:
         self.board = Board(self.args)
         # tick all the pieces for the first turn
         for piece in self.board.get_pieces():
-            piece.tick(self.board.get_surrounding_pieces(piece), "white")
+            piece.tick(self.board.get_surrounding_pieces(piece), "white", True)
         self.cursor_row = 0
         self.cursor_col = 0
         self.height = len(self.board.display()) + 5
@@ -388,7 +392,7 @@ class Engine:
                     self.current_turn = "black" if self.current_turn == "white" else "white"
                     # tick all the pieces at the start of the next turn
                     for piece in self.board.get_pieces():
-                        piece.tick(self.board.get_surrounding_pieces(piece), self.current_turn)
+                        piece.tick(self.board.get_surrounding_pieces(piece), self.current_turn, True)
                     # check if any pieces need to be born
                     if self.current_turn == "white":
                         for i in range(8):
@@ -416,6 +420,9 @@ class Engine:
                             except Exception as e:
                                 self.game_over_message = str(e)
                                 return False
+                    # recalculate nearby pieces for indicators
+                    for piece in self.board.get_pieces():
+                        piece.tick(self.board.get_surrounding_pieces(piece), self.current_turn, False)
                     return True
             if key == "other":
                 self.selected_piece = None
@@ -604,9 +611,9 @@ class Piece:
             elif self.surrounding_black > 3:
                 over_under_population = "o"
         chars_to_print = [
-            [" " if self.birth_counter_white == 0 else str(self.birth_counter_white), " ", " ", " ", white_reproduction],
-            [" " if self.death_counter == 0 else str(self.death_counter), " ", str(self), " ", over_under_population],
-            [" " if self.birth_counter_black == 0 else str(self.birth_counter_black), " ", " ", " ", black_reproduction]
+            [" " if white_reproduction == " " else str(self.birth_counter_white), " ", " ", " ", white_reproduction],
+            [" " if over_under_population == " " else str(self.death_counter), " ", str(self), " ", over_under_population],
+            [" " if black_reproduction == " " else str(self.birth_counter_black), " ", " ", " ", black_reproduction]
         ]
         return chars_to_print
 
@@ -619,7 +626,7 @@ class Piece:
         else:
             return True
 
-    def tick(self, surrounding_pieces: list["Piece"], current_turn: str) -> None:
+    def tick(self, surrounding_pieces: list["Piece"], current_turn: str, update_counters: bool) -> None:
         """perform next step in life cycle, only ticks for players pieces before their turn"""
         self.surrounding_white = 0
         self.surrounding_black = 0
@@ -628,6 +635,8 @@ class Piece:
                 self.surrounding_white += 1
             elif piece.side == "black":
                 self.surrounding_black += 1
+        if not update_counters:
+            return
         if self.side == "empty":
             if current_turn == "white":
                 if self.surrounding_white == 3:
